@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/freesoftwarefactory/parse-multipart/issues"
   },
-  "homepage": "https://github.com/freesoftwarefactory/parse-multipart#readme"
+  "homepage": "https://github.com/freesoftwarefactory/parse-multipart#readme",
+  "dependencies": {
+    "unique-filename": "^1.1.0"
+  }
 }

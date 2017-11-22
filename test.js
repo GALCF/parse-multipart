@@ -1,60 +1,90 @@
+/* jshint node: true */
+'use strict';
 /**
-    this is a tester, it enables you to debug your request.
-
-    1. USAGE:
-
-      Provide two values: body and contentType and put them in the
-      respective variables, then execute:
-
-      $ node test
-    
-    2. OBTAINING THE BODY AND CONTENT-TYPE UNDER AMAZON APIGATEWAY+LAMBDA:
-    
-      if you are runnig this library on Amazon Aws (ApiGateway) then put
-      this line in the very beggining of your lambda function:
-
-         console.log(JSON.stringify(event));
-    
-      it will provide you with something similar to (see logs in CloudWatch):
-
-      ```
-        2017-07-05T23:17:58.956Z    2f01d974-61d8-11e7-9b9a-87f6b4f45038    event=
-        {
-            "body-json": "LS0tLS0tV2ViS........",
-            "params": {
-                "path": {},
-                "querystring": {},
-                "header": {
-                    "Accept": "/",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Accept-Language": "ko-KR,ko;q=0.8,en-US;q=0.6,en;q=0.4",
-                    "CloudFront-Is-Tablet-Viewer": "false",
-                    "CloudFront-Viewer-Country": "JP",
-                    "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryoCaPJuwCGZB5G5Jq",
-                ...
-                }
-            }
-        }
-      ```
-    from this log, copy and paste the values for: "body-json" and "content-type".
+    Unit testing, run with `node test`
 */
-var multipart = require('./multipart.js');
+const assert = require('assert');
+const multipart = require('./multipart.js');
 
-var body = "LS0tLS0tV2ViS2l0Rm9ybUJvdW5kYXJ5b0NhUEp1d0NHWkI1RzVKcQ0KQ29udGVudC1EaXNwb3NpdGlvbjogZm9ybS1kYXRhOyBuYW1lPSJ0ZXN0TWVzc2FnZSINCg0KdGVzdCBtZXNzYWdlIDEyMzU2DQotLS0tLS1XZWJLaXRGb3JtQm91bmRhcnlvQ2FQSnV3Q0daQjVHNUpxDQpDb250ZW50LURpc3Bvc2l0aW9uOiBmb3JtLWRhdGE7IG5hbWU9InRlc3RGaWxlIjsgZmlsZW5hbWU9IjEyMy50Z3oiDQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtY29tcHJlc3NlZA0KDQofiwgIgd9cWQALMTIzLnRhcgDtzjEOwCAMQ1FOVBG7CRdj6PEbGNkjFr/lS55s4DO/2Sr1NNx309nEZjREvB0Da/dgtvSVLAbeviAiIhf8UCKb4gAIAAANCi0tLS0tLVdlYktpdEZvcm1Cb3VuZGFyeW9DYVBKdXdDR1pCNUc1SnEtLQ0K";
-var contentType='multipart/form-data; boundary=----WebKitFormBoundaryoCaPJuwCGZB5G5Jq';
-var boundary=null;
+const demoData = () => {
+    const body = [
+        `trash1`,
+        `------WebKitFormBoundaryvef1fLxmoUdYZWXp`,
+        `Content-Disposition: form-data; name="uploads[]"; filename="A.txt"`,
+        `Content-Type: text/plain`,
+        ``,
+        `@11X111Y`,
+        `111Z\rCCCC\nCCCC`,
+        `CCCCC@`,
+        ``,
+        `------WebKitFormBoundaryvef1fLxmoUdYZWXp`,
+        `Content-Disposition: form-data; name="testMessage";`,
+        ``,
+        `test message 123456`,
+        `------WebKitFormBoundaryvef1fLxmoUdYZWXp`,
+        `Content-Disposition: form-data; name="uploads[]"; filename="C.txt"`,
+        `Content-Type: text/plain`,
+        ``,
+        `@CCCCCCY`,
+        `CCCZ\rCCCW\nCCC0`,
+        `666@`,
+        `------WebKitFormBoundaryvef1fLxmoUdYZWXp--`
+    ].join('\r\n') + '\r\n';
 
-// activate this line to utilize the body and content type defined above
-// body = new Buffer(body,'base64'); boundary = multipart.getBoundary(contentType);
+    return (new Buffer(body, 'utf-8'));
+};
 
-// activate this line to utilize the demo data
-body = multipart.DemoData(); boundary="----WebKitFormBoundaryvef1fLxmoUdYZWXp";
+const testParts = (parts) => {
+    assert.strictEqual(parts.length, 3);
 
-var parts = multipart.Parse(body,boundary);
-for(var i=0;i<parts.length;i++){
-    var part = parts[i];
-    console.log(part);
-    if('NOT_A_FILE' != part.filename) require("fs").writeFile(
-        '/tmp/'+part.filename,part.data,function(err){ 
-                console.log('file saved at:','/tmp/'+part.filename); });
-}
+    assert.strictEqual(parts[0].filename, 'A.txt');
+    assert.strictEqual(parts[1].filename, undefined);
+    assert.strictEqual(parts[2].filename, 'C.txt');
+
+    assert.strictEqual(parts[0].data.toString(), '@11X111Y\r\n111Z\rCCCC\nCCCC\r\nCCCCC@\r\n');
+    assert.strictEqual(parts[1].data, 'test message 123456');
+    assert.strictEqual(parts[2].data.toString(), '@CCCCCCY\r\nCCCZ\rCCCW\nCCC0\r\n666@');
+
+    assert.strictEqual(parts[0].name, 'uploads[]');
+    assert.strictEqual(parts[1].name, 'testMessage');
+    assert.strictEqual(parts[2].name, 'uploads[]');
+};
+
+// Test getBoundary
+const boundaryTest = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
+const contentType = 'Content-Type: multipart/form-data; boundary=' + boundaryTest;
+
+const boundaryResult = multipart.getBoundary(contentType);
+
+assert.strictEqual(boundaryResult, boundaryTest);
+
+// Test parse
+const body = demoData();
+const demoBoundary = '----WebKitFormBoundaryvef1fLxmoUdYZWXp';
+const parts = multipart.parse(body, demoBoundary);
+
+testParts(parts);
+
+// Test middleware
+const req = {
+    headers: {
+        'content-type': 'Content-Type: multipart/form-data; boundary=' + demoBoundary
+    },
+    body: demoData()
+};
+
+const res = {};
+
+multipart.middleware({
+    dest: false
+})(req, res, () => {
+    assert.strictEqual(req.fields['uploads[]'], undefined);
+    assert.strictEqual(req.fields.testMessage.name, 'testMessage');
+    assert.strictEqual(req.fields.testMessage.data, 'test message 123456');
+
+    assert.strictEqual(req.files.testMessage, undefined);
+    assert.strictEqual(req.files['uploads[]'].length, 2);
+
+    assert.strictEqual(req.files['uploads[]'][0].data.toString(), '@11X111Y\r\n111Z\rCCCC\nCCCC\r\nCCCCC@\r\n');
+    assert.strictEqual(req.files['uploads[]'][1].data.toString(), '@CCCCCCY\r\nCCCZ\rCCCW\nCCC0\r\n666@');
+});
