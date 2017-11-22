@@ -202,13 +202,15 @@ const multipart = {
     middleware: (options) => {
         options = options || {};
 
-        const mapFormData = (destination, data) => {
-            if (Array.isArray(destination[data.name])) {
-                destination[data.name].push(data);
-            } else if (!destination[data.name]) {
-                destination[data.name] = data;
+        const mapFormData = (destination, part, asFile) => {
+            const partData = asFile ? part : part.data;
+
+            if (Array.isArray(destination[part.name])) {
+                destination[part.name].push(partData);
+            } else if (!destination[part.name]) {
+                destination[part.name] = partData;
             } else {
-                destination[data.name] = [destination[data.name], data];
+                destination[part.name] = [destination[part.name], partData];
             }
         };
 
@@ -231,9 +233,9 @@ const multipart = {
                 }
 
                 if (part.filename) {
-                    mapFormData(req.files, part);
+                    mapFormData(req.files, part, true);
                 } else {
-                    mapFormData(req.fields, part);
+                    mapFormData(req.fields, part, false);
                 }
             });
 

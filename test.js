@@ -79,8 +79,7 @@ multipart.middleware({
     dest: false
 })(req, res, () => {
     assert.strictEqual(req.fields['uploads[]'], undefined);
-    assert.strictEqual(req.fields.testMessage.name, 'testMessage');
-    assert.strictEqual(req.fields.testMessage.data, 'test message 123456');
+    assert.strictEqual(req.fields.testMessage, 'test message 123456');
 
     assert.strictEqual(req.files.testMessage, undefined);
     assert.strictEqual(req.files['uploads[]'].length, 2);

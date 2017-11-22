@@ -4,9 +4,12 @@ A javascript/nodejs multipart/form-data parser which operates on raw data.
 
 # author
 
-Cristian Salazar. Email: christiansalazarh@gmail.com, Website: www.chileshift.cl,
-i live in Santiago de Chile. I am Amazon AWS developper focused in Serverless
-software development, i call it: the new age of software development.
+original author:  Cristian Salazar (christiansalazarh@gmail.com) www.chileshift.cl
+         Twitter: @AmazonAwsChile
+
+forked from:      "andreasantillana/parse-multipart" to support simple form data
+
+edited by:        "GALCF/parse-multipart" to support middlewares and JSHint with ES6
 
 # Help & Tutorial
 
@@ -61,23 +64,23 @@ hello how are you
 comes to you via headers. In this case, the boundary is:
 
 ```
-	----WebKitFormBoundaryDtbT5UpPj83kllfw
+    ----WebKitFormBoundaryDtbT5UpPj83kllfw
 ```
 
 Now, having this two key values then you can implement it:
 
 ```
-	var multipart = require('parse-multipart');
-	var body = "..the multipart raw body..";
-	var boundary = "----WebKitFormBoundaryDtbT5UpPj83kllfw";
-	var parts = multipart.Parse(body,boundary);
-	
-	for(var i=0;i<parts.length;i++){
-		var part = parts[i];
-		// will be:
-		// { filename: 'A.txt', type: 'text/plain', 
-		//		data: <Buffer 41 41 41 41 42 42 42 42> }
-	}
+    var multipart = require('parse-multipart');
+    var body = "..the multipart raw body..";
+    var boundary = "----WebKitFormBoundaryDtbT5UpPj83kllfw";
+    var parts = multipart.parse(body, boundary);
+    
+    for(var i=0;i<parts.length;i++){
+        var part = parts[i];
+        // will be:
+        // { filename: 'A.txt', type: 'text/plain', 
+        //      data: <Buffer 41 41 41 41 42 42 42 42> }
+    }
 ```
 
 The returned data is an array of parts, each one described by a filename,
