@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const uniqueFilename = require('unique-filename');
+const encoder = require('encoding');
 const isObject = (obj) => {
     return (typeof obj === 'object') && (obj !== null);
 };
@@ -34,7 +35,7 @@ const UPLOAD_PREFIX = 'multipart';
  */
 const multipart = {
     parse: (multipartBodyBuffer, boundary, encoding) => {
-        multipartBodyBuffer = Buffer.from(multipartBodyBuffer.toString(), encoding || 'utf8');
+        multipartBodyBuffer = encoder.convert(multipartBodyBuffer, encoding || 'utf8');
 
         const process = (part) => {
             // will transform this object:
