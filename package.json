@@ -22,7 +22,6 @@
   },
   "homepage": "https://github.com/freesoftwarefactory/parse-multipart#readme",
   "dependencies": {
-    "encoding": "^0.1.12",
     "unique-filename": "^1.1.0"
   }
 }

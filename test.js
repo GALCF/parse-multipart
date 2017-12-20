@@ -31,7 +31,7 @@ const demoData = () => {
         `------WebKitFormBoundaryvef1fLxmoUdYZWXp--`
     ].join('\r\n') + '\r\n';
 
-    return (new Buffer(body, 'utf-8'));
+    return Buffer.from(body, 'utf8');
 };
 
 const testParts = (parts) => {
@@ -61,15 +61,14 @@ assert.strictEqual(boundaryResult, boundaryTest);
 // Test parse
 const body = demoData();
 const demoBoundary = '----WebKitFormBoundaryvef1fLxmoUdYZWXp';
-const parts = multipart.parse(body, demoBoundary, 'latin1');
+const parts = multipart.parse(body, demoBoundary);
 
 testParts(parts);
 
 // Test middleware
 const req = {
     headers: {
-        'content-type': 'Content-Type: multipart/form-data; boundary=' + demoBoundary,
-        'content-transfer-encoding': 'latin1'
+        'content-type': 'Content-Type: multipart/form-data; boundary=' + demoBoundary
     },
     body: demoData()
 };

@@ -4,12 +4,13 @@
 const fs = require('fs');
 const path = require('path');
 const uniqueFilename = require('unique-filename');
-const encoder = require('encoding');
 const isObject = (obj) => {
     return (typeof obj === 'object') && (obj !== null);
 };
 
 const UPLOAD_PREFIX = 'multipart';
+
+const emptyBuffer = () => Buffer.from('');
 
 /**
     Multipart Parser (Finite State Machine)
@@ -18,11 +19,10 @@ const UPLOAD_PREFIX = 'multipart';
 
     const multipart = require('./multipart');
     const boundary = multipart.getBoundary(event.params.header['content-type']);
-    const parts = multipart.parse(body, boundary[, encoding]); // encoding is optional, default 'utf8'
+    const parts = multipart.parse(body, boundary);
 
     const middleware = multipart.middleware({
-        dest: '/path/to/uploaded/files',
-        encoding: 'latin1' // Optional, default <request header 'content-transfer-encoding'> or 'utf8', if no such header present
+        dest: '/path/to/uploaded/files'
     });
 
     // each part is:
@@ -34,9 +34,7 @@ const UPLOAD_PREFIX = 'multipart';
     edited by:        "GALCF/parse-multipart" to support middlewares and JSHint with ES6
  */
 const multipart = {
-    parse: (multipartBodyBuffer, boundary, encoding) => {
-        multipartBodyBuffer = encoder.convert(multipartBodyBuffer, encoding || 'utf8');
-
+    parse: (multipartBodyBuffer, boundary) => {
         const process = (part) => {
             // will transform this object:
             // { header: 'Content-Disposition: form-data; name="uploads[]"; filename="A.txt"',
@@ -97,7 +95,7 @@ const multipart = {
             });
 
             Object.defineProperty(file, 'data', {
-                value: new Buffer(part.part),
+                value: Buffer.from(part.part),
                 writable: true,
                 enumerable: true,
                 configurable: true
@@ -106,7 +104,7 @@ const multipart = {
             return file;
         };
 
-        let lastline = '';
+        let lastline = emptyBuffer();
         let header = '';
         let info = '';
         let state = 0;
@@ -120,34 +118,35 @@ const multipart = {
             const newLineDetected = (oneByte === 0x0a) && (prevByte === 0x0d);
             const newLineChar = (oneByte === 0x0a) || (oneByte === 0x0d);
 
-            if (!newLineChar)
-                lastline += String.fromCharCode(oneByte);
+            if (!newLineChar) {
+                lastline = Buffer.concat([lastline, Buffer.from([oneByte])]);
+            }
 
             if ((0 === state) && newLineDetected) {
-                if (("--" + boundary) == lastline) {
+                if (('--' + boundary) == lastline.toString()) {
                     state = 1;
                 }
-                lastline = '';
+                lastline = emptyBuffer();
             } else if ((1 === state) && newLineDetected) {
-                header = lastline;
+                header = lastline.toString();
                 state = 2;
-                lastline = '';
+                lastline = emptyBuffer();
             } else if ((2 === state) && newLineDetected) {
-                info = lastline;
+                info = lastline.toString();
                 state = 3;
-                lastline = '';
+                lastline = emptyBuffer();
             } else if ((3 === state) && newLineDetected) {
-                fieldInfo = lastline;
+                fieldInfo = lastline.toString();
                 state = 4;
                 buffer = [];
-                lastline = '';
+                lastline = emptyBuffer();
             } else if (4 === state) {
                 if (lastline.length > (boundary.length + 4)) {
                     // mem save
-                    lastline = '';
+                    lastline = emptyBuffer();
                 }
 
-                if (('--' + boundary) === lastline) {
+                if (('--' + boundary) === lastline.toString()) {
                     const j = buffer.length - lastline.length;
                     const part = buffer.slice(0, j - 1);
                     const p = {
@@ -159,7 +158,7 @@ const multipart = {
 
                     allParts.push(process(p));
                     buffer = [];
-                    lastline = '';
+                    lastline = emptyBuffer();
                     state = 5;
                     header = '';
                     info = '';
@@ -168,7 +167,7 @@ const multipart = {
                 }
 
                 if (newLineDetected) {
-                    lastline = '';
+                    lastline = emptyBuffer();
                 }
             } else if (5 === state) {
                 if (newLineDetected) {
@@ -216,10 +215,9 @@ const multipart = {
         };
 
         return (req, res, next) => {
-            const encoding = req.headers['content-transfer-encoding'] || options.encoding || 'utf8';
             const contentType = req.headers['content-type'];
             const boundary = multipart.getBoundary(contentType);
-            const parts = multipart.parse(req.body, boundary, encoding);
+            const parts = multipart.parse(req.body, boundary);
 
             if (!parts) {
                 return next();
