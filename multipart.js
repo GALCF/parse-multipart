@@ -15,15 +15,13 @@ const UPLOAD_PREFIX = 'multipart';
 
     usage:
 
-    const multipart = require('./multipart.js');
-    const body = multipart.demoData();                                // raw body
-    const body = new Buffer(event['body-json'].toString(), 'base64'); // AWS case
-
+    const multipart = require('./multipart');
     const boundary = multipart.getBoundary(event.params.header['content-type']);
-    const parts = multipart.parse(body, boundary);
+    const parts = multipart.parse(body, boundary[, encoding]); // encoding is optional, default 'utf8'
 
     const middleware = multipart.middleware({
-        dest: '/path/to/uploaded/files'
+        dest: '/path/to/uploaded/files',
+        encoding: 'latin1' // Optional, default <request header 'content-transfer-encoding'> or 'utf8', if no such header present
     });
 
     // each part is:
@@ -35,7 +33,9 @@ const UPLOAD_PREFIX = 'multipart';
     edited by:        "GALCF/parse-multipart" to support middlewares and JSHint with ES6
  */
 const multipart = {
-    parse: (multipartBodyBuffer, boundary) => {
+    parse: (multipartBodyBuffer, boundary, encoding) => {
+        multipartBodyBuffer = Buffer.from(multipartBodyBuffer.toString(), encoding || 'utf8');
+
         const process = (part) => {
             // will transform this object:
             // { header: 'Content-Disposition: form-data; name="uploads[]"; filename="A.txt"',
@@ -215,9 +215,10 @@ const multipart = {
         };
 
         return (req, res, next) => {
+            const encoding = req.headers['content-transfer-encoding'] || options.encoding || 'utf8';
             const contentType = req.headers['content-type'];
             const boundary = multipart.getBoundary(contentType);
-            const parts = multipart.parse(req.body, boundary);
+            const parts = multipart.parse(req.body, boundary, encoding);
 
             if (!parts) {
                 return next();
