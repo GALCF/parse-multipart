@@ -4,12 +4,10 @@
 const fs = require('fs');
 const path = require('path');
 const uniqueFilename = require('unique-filename');
-const isObject = (obj) => {
-    return (typeof obj === 'object') && (obj !== null);
-};
 
 const UPLOAD_PREFIX = 'multipart';
 
+const isObject = (obj) => (typeof obj === 'object') && (obj !== null);
 const emptyBuffer = () => Buffer.from('');
 
 /**
@@ -35,14 +33,14 @@ const emptyBuffer = () => Buffer.from('');
  */
 const multipart = {
     parse: (multipartBodyBuffer, boundary) => {
-        const process = (part) => {
+        const process = part => {
             // will transform this object:
             // { header: 'Content-Disposition: form-data; name="uploads[]"; filename="A.txt"',
             //   info: 'Content-Type: text/plain',
             //   part: 'AAAABBBB' }
             // into this one:
             // { filename: 'A.txt', type: 'text/plain', data: <Buffer 41 41 41 41 42 42 42 42> }
-            const obj = (str) => {
+            const obj = str => {
                 const k = str.split('=');
                 const a = k[0].trim();
                 const b = JSON.parse(k[1].trim());
@@ -182,7 +180,7 @@ const multipart = {
     //  read the boundary from the content-type header sent by the http client
     //  this value may be similar to:
     //  'multipart/form-data; boundary=----WebKitFormBoundaryvm5A9tzU1ONaGP5B',
-    getBoundary: (header) => {
+    getBoundary: header => {
         const items = header.split(';');
 
         if (items) {
@@ -199,7 +197,7 @@ const multipart = {
         return '';
     },
 
-    middleware: (options) => {
+    middleware: options => {
         options = options || {};
 
         const mapFormData = (destination, part, asFile) => {
@@ -227,7 +225,7 @@ const multipart = {
             req.files = isObject(req.files) ? req.files : {};
             req.fields = isObject(req.fields) ? req.fields : {};
 
-            parts.forEach((part) => {
+            parts.forEach(part => {
                 if (!part.name) {
                     return;
                 }
@@ -241,7 +239,7 @@ const multipart = {
 
             // Write files to disk, if options.dest is set
             if (options.dest) {
-                parts.forEach((part) => {
+                parts.forEach(part => {
                     if (part.filename) {
                         const filepath = uniqueFilename(options.dest, UPLOAD_PREFIX);
 
